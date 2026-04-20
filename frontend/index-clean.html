@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MealMate</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyCNXtiOWWyoeAg9ppiFa-dg3g6Zy-EyfUQ",
+  authDomain: "mealmate-2bc31.firebaseapp.com",
+  projectId: "mealmate-2bc31",
+  storageBucket: "mealmate-2bc31.firebasestorage.app",
+  messagingSenderId: "280202153740",
+  appId: "1:280202153740:web:5368b1c82121aa1fb64329"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+window._auth = auth;
+window._signIn = (e,p) => signInWithEmailAndPassword(auth,e,p);
+window._signUp = (e,p) => createUserWithEmailAndPassword(auth,e,p);
+window._signOut = () => signOut(auth);
+window._onAuth = (cb) => onAuthStateChanged(auth,cb);
+</script>
+<style>
+* { box-sizing:border-box; margin:0; }
+body { font-family:'Poppins',sans-serif; background:#05070d; color:#fff; }
+.navbar { display:flex; justify-content:center; padding:20px 40px; background:rgba(255,255,255,0.02); position:relative; }
+#meal { position:absolute; left:30px; top:50%; transform:translateY(-50%); font-size:36px; font-weight:1000; }
+.nav-pill { display:flex; gap:10px; background:rgba(255,255,255,0.05); padding:10px; border-radius:40px; backdrop-filter:blur(10px); }
+.nav-item { padding:10px 20px; border-radius:30px; color:#aaa; font-size:14px; cursor:pointer; transition:0.3s; }
+.nav-item.active, .nav-item:hover { background:#b6ff3b; color:#000; font-weight:600; }
+.page { display:none; }
+.page.active { display:block; }
+.container { padding:40px; }
+
+/* BMI Grid */
+.bmi-grid { display:grid; grid-template-columns:1fr 1.4fr 1.6fr; gap:24px; }
+@media (max-width:1100px) { .bmi-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:700px) { .bmi-grid { grid-template-columns:1fr; } }
+.card { background:linear-gradient(145deg,#0b0f1c,#11182a); padding:25px; border-radius:20px; }
+.calc-btn { width:100%; padding:12px; background:#b6ff3b; border:none; border-radius:10px; font-weight:600; cursor:pointer; color:#000; }
+input[type=range], input[type=number], select { width:100%; padding:10px; background:#0f1425; border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; margin:10px 0; }
+.bmi { font-size:70px; color:#b6ff3b; font-weight:800; text-align:center; }
+
+/* Auth */
+.auth-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; display:flex; align-items:center; justify-content:center; }
+.auth-box { background:#0b0f1c; border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:40px; width:380px; text-align:center; }
+.auth-btn { width:100%; padding:13px; background:#b6ff3b; border:none; border-radius:10px; font-weight:700; color:#000; }
+
+/* Fitness Clean */
+.fit-main-grid { display:grid; grid-template-columns:200px 1fr 280px; gap:20px; }
+.fit-ring-card { background:linear-gradient(145deg,#0b0f1c,#11182a); border-radius:20px; padding:24px; text-align:center; }
+.ring-wrap { position:relative; width:160px; height:160px; margin:0 auto 12px; }
+.ring-svg { width:160px; height:160px; transform:rotate(-90deg); }
+.ring-bg { fill:none; stroke:#1e293b; stroke-width:12; }
+.ring-fill { fill:none; stroke:#b6ff3b; stroke-width:12; stroke-linecap:round; stroke-dasharray:427; stroke-dashoffset:427; transition:stroke-dashoffset 1s ease; }
+.fmc { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(145deg,#0b0f1c,#11182a); border-radius:16px; padding:18px 20px; border-left:3px solid; }
+.fmc-cal { border-left-color:#ef4444; }
+.fmc-dist { border-left-color:#22c55e; }
+.fmc-active { border-left-color:#a78bfa; }
+.fmc-avg { border-left-color:#facc15; }
+</style>
+</head>
+<body>
+<!-- Auth Overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <h2>Welcome to <span style="color:#b6ff3b">MealMate</span></h2>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" onclick="switchTab('register')">Register</button>
+    </div>
+    <input class="auth-input" id="authEmail" type="email" placeholder="Email">
+    <input class="auth-input" id="authPass" type="password" placeholder="Password">
+    <button class="auth-btn" onclick="handleAuth()">Continue</button>
+    <div class="auth-err" id="authErr"></div>
+  </div>
+</div>
+
+<!-- Navbar -->
+<div class="navbar">
+  <h1>Meal<span style="color:#b6ff3b">Mate</span></h1>
+  <div class="nav-pill">
+    <div onclick="showPage('bmi')" class="nav-item active">⚖️ BMI</div>
+    <div onclick="showPage('fitness')" class="nav-item">💪 Fitness</div>
+    <div onclick="showPage('meal')" class="nav-item">📅 Meals</div>
+    <div onclick="showPage('chat')" class="nav-item">🤖 AI</div>
+  </div>
+  <div class="user-bar">
+    <span id="userEmail"></span>
+    <button onclick="handleLogout()" class="logout-btn">Logout</button>
+  </div>
+</div>
+
+<!-- Pages -->
+<div id="bmi" class="page active"><div class="container"><div class="bmi-grid">
+  <div class="card">
+    <h3>📏 Inputs</h3>
+    <label>Height</label><input type="range" id="height" min="100" max="250" value="170"><span id="hVal">170cm</span>
+    <label>Weight</label><input type="range" id="weight" min="30" max="200" value="70"><span id="wVal">70kg</span>
+    <input type="number" id="age" placeholder="Age">
+    <select id="gender"><option>Male</option><option>Female</option></select>
+    <button onclick="calcBMI()" class="calc-btn">Calculate BMI</button>
+  </div>
+  <div class="card result">
+    <div class="bmi" id="bmiRes">--</div>
+    <div class="macros" id="macros"></div>
+    <button id="aiBtn" onclick="runAI()" style="display:none">🤖 AI Analysis</button>
+  </div>
+</div></div></div>
+
+<div id="fitness" class="page"><div class="fit-main-grid">
+  <div class="fit-ring-card">
+    <div class="ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 160 160">
+        <circle class="ring-bg" cx="80" cy="80" r="68"/>
+        <circle class="ring-fill" cx="80" cy="80" r="68" id="stepRing"/>
+      </svg>
+    </div>
+    <div id="stepVal">0</div><div>STEPS</div>
+  </div>
+</div></div>
+
+<script>
+const API = 'http://127.0.0.1:8001';
+waitForAuth(user => {
+  if (user) document.getElementById('authOverlay').style.display = 'none';
+});
+function calcBMI() {
+  // BMI logic here (condensed)
+  document.getElementById('aiBtn').style.display = 'block';
+}
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>

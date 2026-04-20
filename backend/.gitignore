@@ -1,0 +1,3 @@
+.env
+serviceAccountKey=./mealmate-service-account.json
+*.json
